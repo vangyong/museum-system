@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wisesoft.mapper.system.RoleMapper">
+	<!--mybatis ehcache缓存配置 -->
+	<!-- 以下两个<cache>标签二选一,第一个可以输出日志,第二个不输出日志 <cache type="org.mybatis.caches.ehcache.LoggingEhcache" 
+		/> -->
+	<!-- <cache type="org.mybatis.caches.ehcache.EhcacheCache"/> -->
+	<!-- 以下与实体类的中字段一致 -->
+	<sql id="selectId">
+		ID,
+		STATE,
+		NAME,
+		ROLEKEY,
+		DESCRIPTION
+	</sql>
+	<select id="selectUserRole" resultType="com.wisesoft.entity.system.RoleFormMap">
+	select 
+	<include refid="selectId"/>
+	 FROM SYS_ROLE
+		WHERE SYS_ROLE.ID
+		IN (SELECT ROLEID FROM SYS_USER_ROLE WHERE
+		USERID=#{USERID})
+	</select>
+	
+	<select id="findRolePage" resultType="com.wisesoft.entity.system.RoleFormMap">
+		SELECT
+		<include refid="selectId" />
+		FROM SYS_ROLE
+		WHERE 1 = 1
+		<if test="NAME != null and NAME != ''">
+		AND NAME LIKE '%${NAME}%'
+		</if>
+		<if test="ROLEKEY != null and ROLEKEY != ''">
+		AND ROLEKEY LIKE '%${ROLEKEY}%'
+		</if>
+		<if test="COLUMN != null">
+          ORDER BY ${COLUMN} ${SORT}
+        </if>
+	</select>
+	
+	<!-- 根据Id删除数据 -->
+	<delete id="deleteById" parameterType="String">
+		DELETE FROM SYS_ROLE WHERE ID = '${ID}'
+	</delete>
+	
+</mapper>

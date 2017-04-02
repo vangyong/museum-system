@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.wisesoft.mapper.system.ResourcesMapper">
+	<!--mybatis ehcache缓存配置 -->
+	<!-- 以下两个<cache>标签二选一,第一个可以输出日志,第二个不输出日志 <cache type="org.mybatis.caches.ehcache.LoggingEhcache" 
+		/> -->
+	<!-- <cache type="org.mybatis.caches.ehcache.EhcacheCache"/> -->
+
+	<sql id="selectId">
+		ID,
+		NAME,
+		PARENTID,
+		(SELECT R.NAME FROM SYS_RESOURCES R WHERE R.ID = SYS_RESOURCES.PARENTID )
+		PARENTNAME,
+		RESKEY,
+		ISHIDE,
+		TYPE,
+		RESURL,
+		RESLEVEL,
+		ICON,
+		DESCRIPTION
+	</sql>
+	
+	<select id="findAllResources" resultType="com.wisesoft.entity.system.ResFormMap">
+		SELECT * FROM SYS_RESOURCES
+	</select>
+	
+	<select id="findChildlists" resultType="com.wisesoft.entity.system.ResFormMap">
+		SELECT
+		<include refid="selectId" />
+		FROM SYS_RESOURCES
+		WHERE PARENTID = #{ID}
+	</select>
+	
+	<!-- 获取该用户和角色的权限 -->
+	<select id="findUserRoleRes" parameterType="String" resultType="com.wisesoft.entity.system.ResFormMap">
+		SELECT
+		<include refid="selectId" />
+		FROM SYS_RESOURCES SYS_RESOURCES 
+		WHERE SYS_RESOURCES.ID IN(
+		SELECT RESID FROM
+		SYS_USER_RES WHERE 1=1
+		<if test="USERID != null and USERID != ''">
+		AND USERID = #{USERID}
+		</if>
+		)
+		<if test="PARENTID != null and PARENTID != ''">
+		AND SYS_RESOURCES.PARENTID = #{PARENTID}
+		</if>
+		<!-- and sys_resources.parentId = #{parentId} -->
+		
+		UNION 
+		
+		SELECT
+		<include refid="selectId" />
+		FROM SYS_RESOURCES SYS_RESOURCES 
+		WHERE SYS_RESOURCES.ID IN(
+		SELECT RESID FROM
+		SYS_ROLE_RES WHERE 1=1
+		<if test="ROLEID != null and ROLEID != ''">
+		AND ROLEID IN (SELECT ROLEID FROM SYS_USER_ROLE WHERE ROLEID = #{ROLEID})
+		</if>
+		)
+		<if test="PARENTID != null and PARENTID != ''">
+		AND SYS_RESOURCES.PARENTID = #{PARENTID}
+		</if>
+		ORDER BY RESLEVEL ASC
+		
+		
+		
+		
+	</select>
+	
+	<!-- 获取该用户的权限 -->
+	<select id="findUserRes" parameterType="String" resultType="com.wisesoft.entity.system.ResFormMap">
+		<!-- select
+		<include refid="selectId" />
+		from sys_resources where id in(
+		select resId from
+		sys_user_res where 1=1
+		<if test="userId != null and userId != '' and userId != '0'">
+		and userId = #{userId}
+		</if>
+		)
+		<if test="parentId != null and parentId != '' and parentId != '0'">
+			and parentId = #{parentId}
+		</if>
+		order by resLevel asc -->
+		
+		SELECT
+		<include refid="selectId" />
+		FROM SYS_RESOURCES WHERE ID IN(
+		SELECT RESID FROM
+		SYS_USER_RES WHERE 1=1
+		AND USERID = #{USERID} )
+		ORDER BY RESLEVEL ASC
+	</select>
+	
+	<!-- 获取该角色的权限 -->
+	<select id="findRoleRes" parameterType="String" resultType="com.wisesoft.entity.system.ResFormMap">
+		SELECT
+		<include refid="selectId" />
+		FROM SYS_RESOURCES WHERE ID IN(
+		SELECT RESID FROM
+		SYS_ROLE_RES WHERE 1=1
+		<if test="roleId != null and roleId != '' and roleId != 0">
+		AND ROLEID = #{ROLEID}
+		</if>
+		)
+		<if test="parentId != null and parentId != '' and parentId != 0">
+			AND PARENTID = #{PARENTID}
+		</if>
+		ORDER BY RESLEVEL ASC
+	</select>
+
+	<!-- 根据账号Id获取该用户的权限 -->
+	<select id="findUserResources" parameterType="String"
+		resultType="com.wisesoft.entity.system.ResFormMap">
+		SELECT
+		<include refid="selectId" />
+		FROM SYS_RESOURCES WHERE ID IN(
+		SELECT RESID FROM SYS_USER_RES
+		WHERE USERID=#{USERID})
+	</select>
+	<update id="updateSortOrder" parameterType="java.util.List">
+          <foreach collection="list" item="item" index="index" open="" close="" separator=";">
+                UPDATE SYS_RESOURCES
+                <set>
+                  RESLEVEL = #{ITEM.RESLEVEL}
+                </set>
+                WHERE ID = #{ITEM.ID}
+         </foreach>
+	</update>
+	<!-- 删用户对应的资源 -->
+	<delete id="deleteUserResources" parameterType="String">
+		DELETE FROM
+		SYS_USER_RES
+		WHERE USERID =#{USERID}
+	</delete>
+	
+	<!-- 删角色对应的资源 -->
+	<delete id="deleteRoleResources" parameterType="String">
+		DELETE FROM
+		SYS_ROLE_RES
+		WHERE ROLEID =#{ID}
+	</delete>
+
+	<!-- 添加角色对应的资源 -->
+	<insert id="addRoleResources">
+		INSERT INTO SYS_ROLE_RES (ROLEID,RESID) VALUE (#{ROLEID},#{RESID})
+	</insert>
+
+</mapper>
